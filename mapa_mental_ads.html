@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa Mental — ADS | UNIASSELVI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#050810;
+  --bg2:#0a0f1e;
+  --surface:#0f1629;
+  --border:#1e2d4a;
+  --accent:#6366f1;
+  --accent2:#818cf8;
+  --accent3:#a5b4fc;
+  --glow:rgba(99,102,241,0.4);
+  --text:#f0f4ff;
+  --muted:#8b99bb;
+  --dim:#3d4f73;
+}
+
+html{scroll-behavior:smooth}
+body{
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── STARS BG ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 30% 60%,rgba(255,255,255,.15) 0%,transparent 100%),
+    radial-gradient(1px 1px at 55% 10%,rgba(255,255,255,.2) 0%,transparent 100%),
+    radial-gradient(1px 1px at 75% 80%,rgba(255,255,255,.18) 0%,transparent 100%),
+    radial-gradient(1px 1px at 90% 35%,rgba(255,255,255,.22) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 20% 90%,rgba(255,255,255,.12) 0%,transparent 100%),
+    radial-gradient(1px 1px at 65% 50%,rgba(255,255,255,.1) 0%,transparent 100%);
+  pointer-events:none;z-index:0;
+}
+
+/* ── HEADER ── */
+header{
+  position:relative;z-index:2;
+  text-align:center;
+  padding:52px 24px 36px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,rgba(99,102,241,.08) 0%,transparent 100%);
+}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(99,102,241,.15);
+  border:1px solid rgba(99,102,241,.4);
+  color:var(--accent3);
+  font-size:10.5px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 16px;border-radius:20px;margin-bottom:20px;
+}
+.badge::before{content:'◈';font-size:12px}
+header h1{
+  font-size:clamp(24px,5vw,48px);
+  font-weight:700;line-height:1.15;
+  background:linear-gradient(135deg,#fff 0%,var(--accent3) 60%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:10px;
+}
+header p{font-size:13.5px;color:var(--muted);letter-spacing:.02em}
+.hint{
+  text-align:center;font-size:12px;color:var(--dim);
+  padding:10px 0 0;letter-spacing:.04em;
+}
+.hint span{color:var(--accent2)}
+
+/* ── CANVAS ── */
+#map-wrap{
+  position:relative;
+  width:100%;max-width:1200px;
+  margin:0 auto;
+  padding:10px 20px 60px;
+}
+#map-svg{
+  width:100%;display:block;
+  cursor:default;
+  overflow:visible;
+}
+
+/* ── NODES (SVG foreignObject won't work well; use pure SVG) ── */
+
+/* ── MODAL ── */
+#overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(6px);
+  z-index:200;
+  align-items:center;justify-content:center;
+  padding:20px;
+}
+#overlay.open{display:flex}
+#modal{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:36px 32px 30px;
+  max-width:540px;width:100%;
+  position:relative;
+  box-shadow:0 0 60px var(--glow),0 24px 64px rgba(0,0,0,.6);
+  animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn{
+  from{opacity:0;transform:scale(.88) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+#modal-close{
+  position:absolute;top:16px;right:18px;
+  background:var(--border);border:none;border-radius:50%;
+  width:32px;height:32px;font-size:16px;
+  cursor:pointer;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  transition:.15s;
+}
+#modal-close:hover{background:#243050;color:#fff}
+#modal-chip{
+  display:inline-block;
+  font-family:'Space Mono',monospace;
+  font-size:9.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 12px;border-radius:20px;margin-bottom:14px;
+}
+#modal-title{
+  font-size:22px;font-weight:700;
+  color:var(--text);margin-bottom:4px;
+}
+#modal-area{
+  font-size:11.5px;color:var(--muted);
+  letter-spacing:.06em;margin-bottom:16px;
+}
+#modal-desc{
+  font-size:14px;color:#c5cfe8;
+  line-height:1.75;margin-bottom:20px;
+  border-left:2px solid var(--accent);
+  padding-left:14px;
+}
+#modal-skills h4{
+  font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.14em;
+  color:var(--dim);margin-bottom:10px;
+}
+.skill-list{display:flex;flex-wrap:wrap;gap:7px}
+.stag{
+  font-size:11.5px;font-weight:500;
+  padding:4px 13px;border-radius:20px;
+  border:1px solid var(--border);
+  color:var(--muted);
+  transition:.15s;cursor:default;
+}
+.stag:hover{border-color:var(--accent2);color:var(--accent3)}
+
+/* ── FOOTER ── */
+footer{
+  position:relative;z-index:2;
+  border-top:1px solid var(--border);
+  padding:20px 24px;text-align:center;
+  font-size:12px;color:var(--dim);
+  background:var(--bg2);
+}
+footer strong{color:var(--accent2);font-weight:600}
+footer .sep{margin:0 10px;opacity:.4}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">Mapa Mental — UNIASSELVI</div>
+  <h1>Análise e Desenvolvimento<br>de Sistemas</h1>
+  <p>Explore as áreas de atuação do profissional de ADS</p>
+</header>
+<p class="hint">💡 Clique em qualquer nó para ver detalhes &nbsp;<span>→</span></p>
+
+<div id="map-wrap">
+  <svg id="map-svg" id="map-svg"></svg>
+</div>
+
+<div id="overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <button id="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-chip"></div>
+    <div id="modal-title"></div>
+    <div id="modal-area"></div>
+    <div id="modal-desc"></div>
+    <div id="modal-skills">
+      <h4>Tecnologias & Habilidades</h4>
+      <div class="skill-list" id="skill-list"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <strong>Kaiky</strong><span class="sep">|</span>Análise e Desenvolvimento de Sistemas<span class="sep">|</span>UNIASSELVI
+</footer>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────
+const BRANCHES = [
+  {
+    id:'web', label:'Desenvolvimento\nWeb', icon:'🖥️',
+    color:'#6366f1', chipBg:'rgba(99,102,241,.18)', chipColor:'#a5b4fc',
+    area:'Front-end · Back-end · Full Stack',
+    desc:'Criação de sites, sistemas e aplicações acessadas via navegador. Abrange o design de interfaces (front-end), a lógica de servidor (back-end) e APIs. O desenvolvedor web constrói desde landing pages até plataformas corporativas completas.',
+    skills:['HTML5','CSS3','JavaScript','TypeScript','React','Vue','Node.js','PHP','REST API','GraphQL','UX/UI'],
+    sub:[
+      {id:'web-fe',label:'Front-end',color:'#818cf8'},
+      {id:'web-be',label:'Back-end',color:'#818cf8'},
+      {id:'web-ux',label:'UX / UI',color:'#818cf8'},
+    ]
+  },
+  {
+    id:'mobile', label:'Desenvolvimento\nMobile', icon:'📱',
+    color:'#10b981', chipBg:'rgba(16,185,129,.18)', chipColor:'#6ee7b7',
+    area:'Android · iOS · Cross-platform',
+    desc:'Desenvolvimento de aplicativos para smartphones e tablets. O profissional pode atuar com desenvolvimento nativo (Kotlin, Swift) ou multiplataforma (Flutter, React Native), construindo soluções para saúde, comércio, finanças e educação.',
+    skills:['Flutter','React Native','Kotlin','Swift','Dart','Firebase','Push Notifications','App Store','Google Play'],
+    sub:[
+      {id:'mob-and',label:'Android',color:'#34d399'},
+      {id:'mob-ios',label:'iOS',color:'#34d399'},
+      {id:'mob-cross',label:'Cross-platform',color:'#34d399'},
+    ]
+  },
+  {
+    id:'data', label:'Banco de\nDados', icon:'🗄️',
+    color:'#3b82f6', chipBg:'rgba(59,130,246,.18)', chipColor:'#93c5fd',
+    area:'Modelagem · SQL · NoSQL · BI',
+    desc:'Projeto, manutenção e otimização de estruturas de armazenamento de dados. Inclui modelagem relacional, consultas SQL avançadas, bancos NoSQL, estratégias de backup, recuperação e análise de dados para tomada de decisão.',
+    skills:['SQL','MySQL','PostgreSQL','MongoDB','Redis','SQLite','DER','Normalização','Power BI','Data Warehouse'],
+    sub:[
+      {id:'db-rel',label:'Relacional',color:'#60a5fa'},
+      {id:'db-nosql',label:'NoSQL',color:'#60a5fa'},
+      {id:'db-bi',label:'Business Intel.',color:'#60a5fa'},
+    ]
+  },
+  {
+    id:'sec', label:'Segurança da\nInformação', icon:'🔐',
+    color:'#ef4444', chipBg:'rgba(239,68,68,.18)', chipColor:'#fca5a5',
+    area:'CIA · ISO 27001 · LGPD · Pentest',
+    desc:'Proteção de sistemas, redes e dados contra acessos não autorizados, ataques e vazamentos. Trabalha com os pilares Confidencialidade, Integridade e Disponibilidade (Tríade CIA), criptografia, normas ISO 27001 e conformidade com a LGPD.',
+    skills:['Criptografia','ISO 27001','LGPD','Firewalls','Pentest','VPN','MFA','SOC','SIEM','Hardening','Zero Trust'],
+    sub:[
+      {id:'sec-net',label:'Redes',color:'#f87171'},
+      {id:'sec-pen',label:'Pentest',color:'#f87171'},
+      {id:'sec-comp',label:'Conformidade',color:'#f87171'},
+    ]
+  },
+  {
+    id:'ai', label:'Inteligência\nArtificial', icon:'🤖',
+    color:'#a855f7', chipBg:'rgba(168,85,247,.18)', chipColor:'#d8b4fe',
+    area:'Machine Learning · NLP · Automação',
+    desc:'Desenvolvimento de sistemas capazes de aprender, raciocinar e tomar decisões autonomamente. O profissional de ADS integra APIs de IA, cria chatbots, modelos preditivos e automações com machine learning aplicados a negócios reais.',
+    skills:['Python','Machine Learning','Deep Learning','NLP','LLM APIs','TensorFlow','Scikit-learn','RPA','Chatbots','Computer Vision'],
+    sub:[
+      {id:'ai-ml',label:'Machine Learning',color:'#c084fc'},
+      {id:'ai-nlp',label:'NLP / LLMs',color:'#c084fc'},
+      {id:'ai-auto',label:'Automação',color:'#c084fc'},
+    ]
+  },
+  {
+    id:'cloud', label:'Computação\nem Nuvem', icon:'☁️',
+    color:'#f59e0b', chipBg:'rgba(245,158,11,.18)', chipColor:'#fcd34d',
+    area:'AWS · Azure · DevOps · Containers',
+    desc:'Gerenciamento de servidores, armazenamento e serviços hospedados em plataformas de nuvem. Inclui deploy de aplicações, escalabilidade automática, monitoramento contínuo e boas práticas de DevOps para entregas ágeis e confiáveis.',
+    skills:['AWS','Azure','Google Cloud','Docker','Kubernetes','CI/CD','Terraform','Linux','Nginx','Serverless','IaC'],
+    sub:[
+      {id:'cl-iaas',label:'IaaS / PaaS',color:'#fbbf24'},
+      {id:'cl-dev',label:'DevOps',color:'#fbbf24'},
+      {id:'cl-cont',label:'Containers',color:'#fbbf24'},
+    ]
+  },
+  {
+    id:'gest', label:'Gestão de\nProjetos', icon:'📋',
+    color:'#06b6d4', chipBg:'rgba(6,182,212,.18)', chipColor:'#67e8f9',
+    area:'Scrum · Requisitos · PMO · UML',
+    desc:'Levantamento de requisitos, modelagem de processos e gerenciamento de projetos de software. O analista é o elo entre cliente e equipe técnica, garantindo que o sistema entregue valor real ao negócio dentro do prazo e do orçamento.',
+    skills:['UML','BPMN','Scrum','Kanban','PMBOK','Casos de Uso','Prototipação','Jira','Confluence','OKR'],
+    sub:[
+      {id:'gst-agi',label:'Ágil / Scrum',color:'#22d3ee'},
+      {id:'gst-req',label:'Requisitos',color:'#22d3ee'},
+      {id:'gst-doc',label:'Documentação',color:'#22d3ee'},
+    ]
+  },
+  {
+    id:'redes', label:'Redes &\nInfraestrutura', icon:'🌐',
+    color:'#f97316', chipBg:'rgba(249,115,22,.18)', chipColor:'#fdba74',
+    area:'TCP/IP · Protocolos · Cabeamento · VPN',
+    desc:'Configuração, manutenção e monitoramento de redes de computadores. Envolve roteamento, switching, protocolos de comunicação, Wi-Fi corporativo, VPN e a infraestrutura física e lógica que sustenta os sistemas de informação.',
+    skills:['TCP/IP','DNS','HTTP/S','Roteadores','Switches','Wi-Fi','VPN','VLAN','Subnetting','Wireshark','Cisco'],
+    sub:[
+      {id:'net-pro',label:'Protocolos',color:'#fb923c'},
+      {id:'net-hw',label:'Hardware',color:'#fb923c'},
+      {id:'net-mon',label:'Monitoramento',color:'#fb923c'},
+    ]
+  },
+  {
+    id:'qa', label:'Qualidade &\nTestes', icon:'✅',
+    color:'#84cc16', chipBg:'rgba(132,204,22,.18)', chipColor:'#bef264',
+    area:'QA · Testes Automatizados · DevQA',
+    desc:'Garantia da qualidade do software por meio de estratégias de teste manual e automatizado. Abrange testes unitários, de integração, de carga e aceitação, além de métricas de qualidade, controle de bugs e processos de QA contínuo.',
+    skills:['Selenium','Cypress','Jest','JUnit','Postman','Load Testing','BDD','TDD','Bug Tracking','SonarQube'],
+    sub:[
+      {id:'qa-man',label:'Testes Manuais',color:'#a3e635'},
+      {id:'qa-auto',label:'Automação QA',color:'#a3e635'},
+      {id:'qa-perf',label:'Performance',color:'#a3e635'},
+    ]
+  },
+];
+
+// ── LAYOUT ENGINE ─────────────────────────────────────────────────────
+const svg = document.getElementById('map-svg');
+const NS = 'http://www.w3.org/2000/svg';
+
+function el(tag, attrs={}, text){
+  const e = document.createElementNS(NS, tag);
+  Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  if(text !== undefined) e.textContent = text;
+  return e;
+}
+
+function glowFilter(id, color){
+  const f = el('filter',{id, x:'-50%', y:'-50%', width:'200%', height:'200%'});
+  const fe = el('feDropShadow',{dx:'0',dy:'0',stdDeviation:'6','flood-color':color,'flood-opacity':'0.8'});
+  f.appendChild(fe);
+  return f;
+}
+
+function drawMap(){
+  svg.innerHTML = '';
+  const W = svg.parentElement.offsetWidth - 40;
+  const BRANCH_COUNT = BRANCHES.length;
+
+  // Layout: center + branches left/right tree style
+  // We'll do a radial layout with sub-nodes extending outward
+  const CX = W / 2;
+  const CY_CENTER_RADIUS = 60;
+  // Estimate height needed
+  const ORBIT = Math.min(W * 0.34, 240);
+  const SUB_DIST = 85;
+
+  // Find total height: highest sub node
+  let maxR = ORBIT + SUB_DIST + 30;
+  const totalH = CX * 2 > 700 ? maxR * 2 + 100 : maxR * 2 + 160;
+  const CY = totalH / 2;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
+  svg.setAttribute('height', totalH);
+
+  // Defs
+  const defs = el('defs');
+  // glow filters
+  BRANCHES.forEach(b=>{
+    defs.appendChild(glowFilter('glow-'+b.id, b.color));
+  });
+  defs.appendChild(glowFilter('glow-center','#6366f1'));
+  // gradient center
+  const grad = el('radialGradient',{id:'cgrad',cx:'50%',cy:'50%',r:'50%'});
+  grad.appendChild(el('stop',{offset:'0%','stop-color':'#818cf8'}));
+  grad.appendChild(el('stop',{offset:'100%','stop-color':'#4338ca'}));
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  // Background pulse circle
+  const pulse = el('circle',{cx:CX,cy:CY,r:CY_CENTER_RADIUS+16,fill:'none',stroke:'rgba(99,102,241,.12)','stroke-width':'1.5'});
+  svg.appendChild(pulse);
+  const pulse2 = el('circle',{cx:CX,cy:CY,r:CY_CENTER_RADIUS+32,fill:'none',stroke:'rgba(99,102,241,.06)','stroke-width':'1'});
+  svg.appendChild(pulse2);
+
+  // ── BRANCHES ────────────────────────────────────────────────────────
+  BRANCHES.forEach((branch, i)=>{
+    const angle = (2 * Math.PI * i / BRANCH_COUNT) - Math.PI / 2;
+    const bx = CX + ORBIT * Math.cos(angle);
+    const by = CY + ORBIT * Math.sin(angle);
+
+    // Line center → branch
+    const mainLine = el('line',{
+      x1:CX, y1:CY, x2:bx, y2:by,
+      stroke:branch.color,
+      'stroke-width':'2',
+      'stroke-opacity':'.5',
+      'stroke-dasharray':'none'
+    });
+    svg.appendChild(mainLine);
+
+    // Sub-nodes
+    const subCount = branch.sub.length;
+    branch.sub.forEach((sub, si)=>{
+      const spread = 0.38; // radians spread
+      const subAngle = angle + (si - (subCount-1)/2) * spread;
+      const sx = bx + SUB_DIST * Math.cos(subAngle);
+      const sy = by + SUB_DIST * Math.sin(subAngle);
+
+      // Line branch → sub
+      const subLine = el('line',{
+        x1:bx, y1:by, x2:sx, y2:sy,
+        stroke:branch.color,
+        'stroke-width':'1.2',
+        'stroke-opacity':'.3',
+        'stroke-dasharray':'4 3'
+      });
+      svg.appendChild(subLine);
+
+      // Sub dot
+      const sdot = el('circle',{cx:sx,cy:sy,r:5,fill:branch.color,'fill-opacity':'.6'});
+      svg.appendChild(sdot);
+
+      // Sub label
+      const fontSize = 9.5;
+      const subLbl = el('text',{
+        x:sx, y:sy,
+        'text-anchor': Math.cos(subAngle) > 0.1 ? 'start' : Math.cos(subAngle) < -0.1 ? 'end' : 'middle',
+        'dominant-baseline':'middle',
+        fill:'#8b99bb',
+        'font-family':'Space Grotesk, sans-serif',
+        'font-size':fontSize,
+        'font-weight':'500',
+      });
+      const offsetX = Math.cos(subAngle) > 0.1 ? 9 : Math.cos(subAngle) < -0.1 ? -9 : 0;
+      const offsetY = Math.abs(Math.cos(subAngle)) < 0.1 ? (Math.sin(subAngle) > 0 ? 13 : -13) : 0;
+      subLbl.setAttribute('x', sx + offsetX);
+      subLbl.setAttribute('y', sy + offsetY);
+      subLbl.textContent = sub.label;
+      svg.appendChild(subLbl);
+    });
+
+    // Branch bubble background glow
+    const glowCirc = el('circle',{cx:bx,cy:by,r:42,fill:branch.color,'fill-opacity':'.08'});
+    svg.appendChild(glowCirc);
+
+    // Branch bubble
+    const bcirc = el('circle',{
+      cx:bx,cy:by,r:38,
+      fill:'#0a0f1e',
+      stroke:branch.color,
+      'stroke-width':'2',
+      style:`cursor:pointer;filter:url(#glow-${branch.id})`,
+    });
+    bcirc.addEventListener('click', ()=> openModal(branch.id));
+    bcirc.addEventListener('mouseenter', ()=>{ bcirc.setAttribute('r','41'); bcirc.setAttribute('stroke-width','2.5'); });
+    bcirc.addEventListener('mouseleave', ()=>{ bcirc.setAttribute('r','38'); bcirc.setAttribute('stroke-width','2'); });
+    svg.appendChild(bcirc);
+
+    // Icon
+    const iconEl = el('text',{
+      x:bx, y: by - 11,
+      'text-anchor':'middle','dominant-baseline':'middle',
+      'font-size':'18',
+      style:'cursor:pointer;pointer-events:none'
+    });
+    iconEl.textContent = branch.icon;
+    svg.appendChild(iconEl);
+
+    // Label (multiline)
+    const lines = branch.label.split('\n');
+    lines.forEach((ln, li)=>{
+      const lbl = el('text',{
+        x:bx, y: by + 5 + li * 13,
+        'text-anchor':'middle','dominant-baseline':'middle',
+        fill:'#f0f4ff',
+        'font-family':'Space Grotesk, sans-serif',
+        'font-size':'9.5',
+        'font-weight':'600',
+        style:'cursor:pointer;pointer-events:none'
+      });
+      lbl.textContent = ln;
+      svg.appendChild(lbl);
+    });
+
+    // Click overlay on text
+    const clickZone = el('circle',{cx:bx,cy:by,r:38,fill:'transparent',style:'cursor:pointer'});
+    clickZone.addEventListener('click',()=>openModal(branch.id));
+    svg.appendChild(clickZone);
+  });
+
+  // ── CENTER NODE ───────────────────────────────────────────────────────
+  const ccirc = el('circle',{
+    cx:CX, cy:CY, r:CY_CENTER_RADIUS,
+    fill:'url(#cgrad)',
+    style:'filter:url(#glow-center)'
+  });
+  svg.appendChild(ccirc);
+
+  const centerIcon = el('text',{x:CX,y:CY-18,'text-anchor':'middle','dominant-baseline':'middle','font-size':'26'});
+  centerIcon.textContent = '💻';
+  svg.appendChild(centerIcon);
+
+  ['ADS'].forEach((ln,li)=>{
+    const ct = el('text',{x:CX, y:CY+12+li*14,'text-anchor':'middle','dominant-baseline':'middle',
+      fill:'#fff','font-family':'Space Grotesk,sans-serif','font-size':'13','font-weight':'700'});
+    ct.textContent = ln;
+    svg.appendChild(ct);
+  });
+  const ct2 = el('text',{x:CX,y:CY+26,'text-anchor':'middle','dominant-baseline':'middle',
+    fill:'rgba(255,255,255,.6)','font-family':'Space Grotesk,sans-serif','font-size':'8','font-weight':'400'});
+  ct2.textContent = 'Análise e Desenv.';
+  svg.appendChild(ct2);
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────
+const dataMap = {};
+BRANCHES.forEach(b=> dataMap[b.id] = b);
+
+function openModal(id){
+  const d = dataMap[id];
+  const chip = document.getElementById('modal-chip');
+  chip.textContent = d.icon + '  ' + d.id.toUpperCase();
+  chip.style.background = d.chipBg;
+  chip.style.color = d.chipColor;
+  chip.style.border = `1px solid ${d.color}44`;
+  document.getElementById('modal-title').textContent = d.label.replace('\n',' ');
+  document.getElementById('modal-area').textContent = d.area;
+  document.getElementById('modal-desc').textContent = d.desc;
+  document.getElementById('modal-desc').style.borderLeftColor = d.color;
+  const sl = document.getElementById('skill-list');
+  sl.innerHTML = '';
+  d.skills.forEach(s=>{
+    const sp = document.createElement('span');
+    sp.className = 'stag';
+    sp.textContent = s;
+    sl.appendChild(sp);
+  });
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal(e){
+  if(!e || e.target === document.getElementById('overlay') || e.currentTarget.id === 'modal-close'){
+    document.getElementById('overlay').classList.remove('open');
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+drawMap();
+window.addEventListener('resize', drawMap);
+</script>
+</body>
+</html>
